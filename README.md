@@ -25,7 +25,7 @@ Clinical decision support (CDS) is an inately integrated activity: the notion of
 
 BPM execution may be described in similar form. A model may be developed by a small team of SMEs, but is ultimately useless to execute only in the vacuum of a non-production environment against mock data. In planning to incorporate \*MN execution as the engine of clinical enterprise processes and decisions, we have outlined a number of reference patterns specifically catering to HIT-specific standards that enterprise architects are likely to encounter.
 
-As with the rest of this field guide, these patterns are not prescriptive. They represent distilled baseline approaches for local adaptation based on present-day standards of broad interest in HIT, and are scope constrained to architectural situations specific to healthcare.
+As with the rest of this field guide, these patterns are not prescriptive. Given the heterogeneity and vendor-specific nature of HIT environments it is implausible to offer universally-applicable blueprints, however, we suggest accounting for a number of critical factors in any workflow execution context. They represent distilled baseline approaches for local adaptation based on present-day standards of broad interest in HIT, and are scope constrained to architectural situations specific to healthcare.
 
 ## Common Concerns
 Some concerns span all integration contexts. Before applying any such pattern, consider the following.
@@ -57,7 +57,7 @@ When integrating service APIs, especially from a general-purpose modeling tool t
 
 Script tasks, in particular, are a complete interoperability gamble, as no \*MN standard defines a minimum set of languages that will be supported. Other than being in "mime-type format", the BPMN 2 specification does not further constrain the value of the "scriptFormat" attribute, nor provide guidance on how language versions or runtime requirements should be specified. This introduces a number of practical compatibilty problems with service tasks:
 
-1. Popular engines are often based on the Open Source KIE family of libraries. While these are likely to support a degree of JSR-223-compatible scripting languages, but this is a highly platform-specific feature.
+1. Popular engines are often based on the Open Source KIE family of libraries. These implementations are likely to support a degree of JSR-223-compatible scripting languages, but (a) this is a highly platform-specific feature, and (b) the notion of a JSR itself is foreign to those outside the Java community.
 2. Even with an assumption of common runtimes across environments, underlying versions and available libraries are not guaranteed, and MIME types, while flexible, are generally (but not always) used for structural or syntactic purposes only, such as "application/javascript" or "application/ecmascript". It is far less common to see resource version numbers embedded in the MIME, and not appropriate to embed dependencies in this string.
 3.  General-purpose runtimes will not have support for CDS-specific languages such as GELLO, as is the case with out-of-the-box, KIE-based engines.
 
@@ -77,7 +77,15 @@ Healthcare is a highly regulated domain requiring large numbers of individuals t
 
 The domain-specific needs for logging and audit trails coincide with emergent HIT issues with tracing operations throughout the entirety of a SOA. As individual services are broken into smaller, atomic services, popularly known as "microservices", the total number of services and integration points grows, potentially exponentially in the theoretic worst case. In all SOAs, and most importantly in µSOAs, it is critical to trace a function, such as a user "click" or a business process instance state change, to all the downstream effects that cross service boundaries. To do so, implement support for vendor-neutral distributed tracing, such as [OpenTracing](http://opentracing.io), to integrated external services.
 
-Outside HIT benefits, all SOAs can benefits from unified logging, and \*MN engines should be tied to local capabilities. 
+Outside HIT benefits, all SOAs can benefits from unified logging, and \*MN engines should be fully integrated with local capabilities. 
+
+### Participant Identity and Access Management
+Do not assume that individual actors within a workflow have the same level of data access. Workflows do not have inherent knowledge of the access restrictions placed upon its users. For example, a front desk administrator may have limited access to patient location to visitor routing, call handling and support purposes, but does not need detailed PHI. In other words, **the presence of a data object or information dependency does not imply it is available to a given participant** that may happen to be prevent during a referencing task of the workflow.
+
+### Complex Patient Decisions
+CDS is commonly envisioned to be modular: where logic and other knowledge of significant complexity are not “baked in” to a single workflow, but authoritatively represented in an external knowledge management system. Further, DMN’s Friendly Enough Expression Language is not intended to provide exhaustively long decision tables that exceed the ability of a human to cognitively understand them, such as the case of machine learning models.
+
+In these cases, it is recommended to use either an alternative scripting language, an externalized service implementation accessed via API call, or combination of the two. Language availability is an implementation-specific feature. Camunda, for example, allows for any JSR–223-compliant language. Note, however, that alternative scripting languages introduce the “double curly braces problem” into your model, discussed above, potentially effecting the interoperability characteristics of your model. Consider the pro and cons of this approach before introducing additional languages and/or external service calls.
 
 ## Solution Recipes
 This section provides concrete solution templates for integrating a *\MN runtime with well-known HIT standards.
@@ -90,35 +98,34 @@ OAuth 2, and thus SoF, does not specify a way for authorizing access to multiple
 #### Simple Client/Server Architecture
 In a "typical" SoF application where the client and server are essentially the only two relevent software actors after launch, interactions with the \*MN runtime should likely originate from the *client* side, for several reasons:
 
-* FHIR is a platform specification, and implementors are expected to only support and expose the capabilities necessary for its scope. That is, when FHIR does have event and messaging mechanisms, it is unlikely that your backend will support hooking into \*MN as part of its scoped resource management functions.
-* Authorization is sketchy, at best. In CDS Hooks, discussed in a separate recipe, a bearer token credential may be passed to a backend service across the wire but direct access to FHIR resources, but it is bad security practice for a user to disclose his/her private credentials for an external party to masquarade on their behalf. In other words, a FHIR server should not be expected to manage the security credentials of a user/client, and should always have access to its own that distinctly identify the service making the request.
+* FHIR is a platform specification, and implementors are expected to only support and expose the capabilities necessary for a given services scope. That is, while FHIR does have event and messaging mechanisms, it is unlikely that a FHIR-centric backend service will support hooking into \*MN as part of its scoped resource management functions.
+* Authorization is sketchy, at best. In CDS Hooks, discussed in a separate recipe, a bearer token credential may be passed to a backend service across the wire but direct access to FHIR resources, but **it is extremely bad security practice for a user to disclose his/her private credentials for an external party to masquarade on their behalf**. In other words, a FHIR server should not be expected to manage the security credentials of a user/client, and should always have access to its own that distinctly identify it is a _service_ making requests, not a user agent.
 
 Thus, to tie a simple SoF application to a \*MN engine, integrate it directly and using a separate OAuth 2 login flows. This is a bit awkard in that it doubles the number of browser redirects, but is more secure since the user is obtaining separate access tokens for both servers, and at no point is one service masquerading as the SoF client.
 
 #### Complex Client/Server Architecture
-In a more sophisticated SoF scenario where 
+TODO Write
+In a more sophisticated SoF scenario where...
 
 ### Synchronous CDS Hooks Invocation
+TODO Discuss the "Hello, Patient" example, as demo, and more real-world examples of explicit invocation.
 
-Terminology Resolution
-"
+### Asynchronous Implicit Invocation
+TODO Discussing implicitly _triggered_ CDS as part of \*MN, as opposed to explicitly invoked cases. 
+
+### HL7 Decision Support Service (DSS)
+TODO
+
+### Terminology Resolution
+TODO Discuss FHIR Terminology, CTS2 etc for lookups, equivalence, and subsumption testing.
+
+The conceptually simplest terminology-related functions are (1) interactive text-based searches for user selection of appropriate term/code, and (2) lookups for known codes, but these are not the only functions of a terminology service. A workflow requiring dynamic expansion of a value set or class-based filtering will need a service external to the workflow engine, optimized for these specific functions via specialized indexes and caches. One such example is FHIR’s ValueSet $expand operation.
   
-User-Initiated CDS
+### HL7 Infobutton Manager and User-Initiated CDS
+TODO Discuss how these can be integrated, if desired.
 
-"Some high-level description and heading teasers, such as: While this Field Guide is targeted at clinical modelers, it is helpful to understand how a workflow environment will likely integrate into a HIT ecosystem. Given the heterogeneity and vendor-specific nature of HIT environments it is implausible to offer universally-applicable blueprints, however, we suggest accounting for a number of critical factors in any workflow execution context.
-Participant Identity and Access Management
-Do not assume that individual actors within a workflow have the same level of data access. Workflows do not have inherent knowledge of the access restrictions placed upon its users. For example, a front desk administrator may have limited access to patient location to visitor routing, call handling and support purposes, but does not need detailed PHI. In other words, the presence of a data object or information dependency does not imply it is available to any participant that may observe the state of the workflow.
-placeholder
-Triggering with CDS Hooks
-placeholder
-Complex Patient Decisions
-Clinical decision support is generally envisioned to be modular, where logic and other knowledge of significant complexity are not “baked in” to a single workflow, but authoritatively represented in an external knowledge management system. Further, DMN’s Friendly Enough Expression Language is not intended to provide exhaustively long decision tables that exceed the ability of a human to cognitively understand them, such as the case of machine learning models.
-In these cases, it is recommended to use either an alternative scripting language, an externalized service implementation accessed via API call, or combination of the two. Language availability is an implementation-specific feature. Camunda, for example, allows for any JSR–223-compliant language. Note, however, that leveraging an alternative scripting language introduces a “double curly braces problem” into your model, potentially effecting the interoperability characteristics of your model. Consider the pro and cons of this approach before introducing additional languages and/or external service calls.
-the case with complex machine learning models
-EHR Read/Write Access
-placeholder
-SMART-on-FHIR Applications
-placeholder"
+### HL7 v2 and v3
+TODO Yup.
 
-
-Mapping isn’t the only reason. Something along the lines of…“The conceptually simplest terminology-related functions are (1) interactive text-based searches for user selection of appropriate term/code, and (2) lookups for known codes, but these are not the only functions of a terminology service. A workflow requiring dynamic expansion of a value set or class-based filtering will need a service external to the workflow engine, optimized for these specific functions via specialized indexes and caches. One such example is FHIR’s ValueSet $expand operation.”
+### GELLO and CDS-Specific Languages
+TODO Discuss if desired.
