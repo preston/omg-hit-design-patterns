@@ -12,9 +12,6 @@ Subtitle: Model deployment in platform-specific CDS.
 # Word:
 pandoc -f markdown_mmd -t docx --toc -o index.docx index.md
 
-# PDF:
-pandoc -f markdown_mmd -t pdf --toc -o index.docx index.md
-
 # ePub:
 pandoc -f markdown_mmd -t epub --toc -o index.epub index.md
 
