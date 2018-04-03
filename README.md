@@ -1,6 +1,9 @@
 Author:	Preston Lee
 Email:	preston.lee@prestonlee.com
-Title:	OMG HIT BPMN/CMMN/DMN Design Patterns
+Title:	Health IT *MN Implementation Cookbook
+Subtitle: Model deployment in platform-specific CDS.
+
+*A work-in-progress, with most recent feedback from the March 20th, 2018 OMG Healthcare DTF meeting.*
 
 ```
 #!/bin/bash
@@ -19,7 +22,7 @@ pandoc -f markdown_mmd -t epub --toc -o index.epub index.md
 pandoc -f markdown_mmd -t html --toc -o index.html index.md
 ```
 
-# Health IT (HIT) Design Pattern Cookbook
+# Health IT (HIT) *MN Implementation Cookbook
 
 Clinical decision support (CDS) is an inately integrated activity: the notion of "support" implying an integration outside the boundaries of a given function. HIT architectures designed for modular development, such as in the case of SOAs, call for CDS processes to operate across data and computation authorities. Even monolithic EHRs benefit from internal logical partitioning within the system and databases, if only for the sanity of development teams.
 
@@ -87,6 +90,10 @@ CDS is commonly envisioned to be modular: where logic and other knowledge of sig
 
 In these cases, it is recommended to use either an alternative scripting language, an externalized service implementation accessed via API call, or combination of the two. Language availability is an implementation-specific feature. Camunda, for example, allows for any JSR–223-compliant language. Note, however, that alternative scripting languages introduce the “double curly braces problem” into your model, discussed above, potentially effecting the interoperability characteristics of your model. Consider the pro and cons of this approach before introducing additional languages and/or external service calls.
 
+### Service Level Agreements (SLAs) of Integrated Services
+
+TODO Discuss availability, performance etc.
+
 ## Solution Recipes
 This section provides concrete solution templates for integrating a *\MN runtime with well-known HIT standards.
 
@@ -127,5 +134,9 @@ TODO Discuss how these can be integrated, if desired.
 ### HL7 v2 and v3
 TODO Yup.
 
-### GELLO and CDS-Specific Languages
+### CQL, GELLO, and CDS-Specific Languages
 TODO Discuss if desired.
+
+### Machine Learning, NLP, and Resource-Intensive Activities
+
+TODO Elaborate on service integration with long-running synchronous services, and provide guidelines on FEEL complexity.
